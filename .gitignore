@@ -1,0 +1,6 @@
+# Dependencias
+/plugin/node_modules
+/plugin/code.js
+
+# Archivos del sistema operativo Mac
+.DS_Store
