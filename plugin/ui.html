@@ -1,324 +1,1235 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <style>
-        :root {
-            --background: #FFFFFF;
-            --surface: #F5F5F5;
-            --on-surface-primary: #000000;
-            --on-surface-secondary: #8E8E8E;
-            --border: #E0E0E0;
-        }
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--background);
-            color: var(--on-surface-primary);
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        .view-wrapper {
-            padding: 24px;
-            box-sizing: border-box;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .view-wrapper.centered {
-            justify-content: center;
-            align-items: center;
-        }
-        .view { display: none; width: 100%; }
-        .view.active { display: flex; flex-direction: column; gap: 16px; }
+<meta charset="UTF-8" />
+<title>Moood! – Connect</title>
+<style>
 
-        h1 { font-size: 32px; font-weight: 500; margin: 0 0 8px 0; text-align: center; }
-        h2 { font-size: 18px; font-weight: 500; margin: 0; text-transform: capitalize; }
-        p { margin: 0; color: var(--on-surface-secondary); font-size: 16px; line-height: 1.5; text-align: left; }
-        p.small{font-size: 13px;}
-        button {
-            background-color: #000000;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: opacity 0.2s;
-            width: 100%;
-        }
-        button:hover { opacity: 0.8; }
-        button.secondary { background-color: #e0e0e0; color: #333; }
-        button.secondary:hover { background-color: #ccc; }
-        button.danger { background-color: #dc3545; }
-        button.danger:hover { background-color: #c82333; }
-        button:disabled { background-color: #E0E0E0; color: #A6A6A6; cursor: not-allowed; }
+/* ======================================= */
+/* 1. RESET BÁSICO Y VARIABLES */
+/* ======================================= */
 
-        #view-auth { max-width: 320px; align-items: center; text-align: center; gap: 16px; }
-        #view-auth p { text-align: center; }
-        #view-auth button { max-width: 200px; }
-        
-        #view-search { max-width: 450px; align-self: center; text-align: center; }
-        #view-search p { text-align: center; margin-bottom: 8px; }
-        .search-form { display: flex; gap: 8px; align-items: center; }
-        #createMoodboardButton { width: auto; flex-shrink: 0; }
+html, body { overflow-x: hidden; }
 
-        textarea { width: 100%; height: 80px; padding: 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; }
-        .input-container { position: relative; width: 100%; flex-grow: 1; }
-        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--on-surface-secondary); }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px 16px 12px 48px;
-            box-sizing: border-box;
-            background-color: #FFFFFF;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--on-surface-primary);
-            font-size: 14px;
-        }
-        input[type="text"]::placeholder { color: var(--on-surface-secondary); }
-        .tags-container { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-        .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-        .tag { background-color: var(--surface); color: #000000; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .tag:hover { background-color: #e0e0e0; }
+:root { 
+  --background:#FFFFFF; 
+  --surface:#F5F5F5; 
+  --on-surface-primary:#000; 
+  --on-surface-secondary:#8E8E8E; 
+  --border:#E0E0E0; 
+}
 
-        .moodboard-header { display: flex; justify-content: space-between; align-items: center; }
-        .back-button { background: none; border: 1px solid var(--border); border-radius: 50%; width: 36px; height: 36px; display:flex; justify-content:center; align-items:center; cursor: pointer; padding: 0; color: var(--on-surface-primary); }
-        .moodboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-height: 550px; overflow-y: auto; padding: 2px; }
-        .pin-container { position: relative; }
-        .pin-image { width: 100%; height: 160px; object-fit: cover; background-color: var(--surface); border-radius: 8px; }
-        .pin-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s; cursor: pointer; }
-        .pin-container:hover .pin-overlay { opacity: 1; }
-        .delete-button { position: absolute; top: 8px; right: 8px; background-color: rgba(0,0,0,0.5); color: white; border-radius: 50%; width: 24px; height: 24px; line-height: 24px; text-align: center; cursor: pointer; }
-        
-        .lightbox, .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; z-index: 1000; }
-        .lightbox.active, .modal.active { display: flex; }
-        .lightbox { overflow-y: auto; align-items: flex-start; padding: 5vh 0; box-sizing: border-box; }
-        .lightbox-content { max-width: 90%; object-fit: contain; }
-        .lightbox-close { position: fixed; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
-        .lightbox-actions { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); }
-        .lightbox-nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; line-height: 40px; text-align: center; cursor: pointer; }
-        .lightbox-nav.prev { left: 20px; }
-        .lightbox-nav.next { right: 20px; }
-        
-        .modal { align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; text-align: center; max-width: 280px; }
-        .modal-secondary-text { font-size: 13px; color: #777; margin: 5px 0 15px 0; }
-        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
-        
-        .spinner-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1500; }
-        .spinner-overlay.active { display: flex; }
-        .spinner { border: 4px solid rgba(255,255,255,0.2); border-left-color: #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+* { box-sizing:border-box; }
 
-        .toast { position: fixed; bottom: -50px; left: 50%; transform: translateX(-50%); background-color: #28a745; color: white; padding: 10px 20px; border-radius: 8px; z-index: 3000; transition: bottom 0.5s ease-in-out; }
-        .toast.show { bottom: 30px; }
-    </style>
+body {
+  margin:0; 
+  font-family:Inter,system-ui,-apple-system,sans-serif;
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  gap:0px;
+  background:var(--background); 
+  color:var(--on-surface-primary);
+  -webkit-font-smoothing:antialiased; 
+  -moz-osx-font-smoothing:grayscale;
+}
+
+
+/* ======================================= */
+/* 2. VIEW WRAPPER Y ESTRUCTURA DE PÁGINA */
+/* ======================================= */
+
+.view-wrapper {
+  width: 100%;
+  max-width: 100vw;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.view-wrapper {
+  padding: 0;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.view-wrapper.centered { justify-content:center; align-items:center; }
+.view { display:none; width:100%; }
+.view.active { display:flex; flex-direction:column; gap:16px; }
+
+h1 { font-size:32px; font-weight:500; margin:0 0 8px; text-align:center; }
+h2 { font-size:18px; font-weight:500; margin:0; text-transform:capitalize; }
+p { margin:0; color:var(--on-surface-secondary); font-size:16px; line-height:1.5; text-align:left; }
+p.small { font-size:13px; }
+
+
+/* ======================================= */
+/* 3. CONTENEDORES BASE */
+/* ======================================= */
+
+.container {
+  width:720px; 
+  height:760px; 
+  display:flex; 
+  flex-direction:column;
+  justify-content:center; 
+  align-items:center; 
+  text-align:center;
+}
+
+.container > * { width:100%; max-width:450px; }
+.container + .container { margin-top:50px; }
+
+
+/* ======================================= */
+/* 4. SECCIÓN WELCOME / HOME */
+/* ======================================= */
+
+.title { 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  gap:8px; 
+  font-size:28px; 
+  font-weight:600; 
+  margin-bottom:12px; 
+}
+
+.subtitle { font-size:14px; line-height:20px; color:#808080; }
+
+.container.welcome .subtitle { margin-bottom:32px; }
+.container.welcome .cta { 
+  display:inline-block; 
+  width:auto; 
+  max-width:none; 
+  white-space:nowrap; 
+  padding:18px 28px; 
+}
+
+button { 
+  background:#000; 
+  color:#fff; 
+  border:0; 
+  border-radius:8px; 
+  font-size:14px; 
+  font-weight:600; 
+  white-space:nowrap; 
+  cursor:pointer; 
+  transition:opacity .2s; 
+}
+
+button:hover { opacity:.85; }
+
+input { 
+  width:100%; 
+  border:1px solid #E6E6E6; 
+  border-radius:6px; 
+  padding:0 12px; 
+  font-size:14px; 
+  height:48px; 
+}
+
+
+/* ======================================= */
+/* 5. AUTORIZACIÓN (CÓDIGO / TOKEN) */
+/* ======================================= */
+
+.container.authorization > * + * { margin-top:8px; }
+
+.row.code { 
+  width:440px; 
+  display:flex; 
+  align-items:center; 
+  gap:8px; 
+}
+
+.row.code input[type="text"] { 
+  flex:1; 
+  min-width:0; 
+  height:48px; 
+  border-radius:8px; 
+}
+
+.row.code button { 
+  height:48px; 
+  padding:0 18px; 
+  border-radius:8px; 
+  display:inline-flex; 
+  align-items:center; 
+  justify-content:center; 
+}
+
+
+/* ======================================= */
+/* 6. SEARCH INPUT + POPULARES */
+/* ======================================= */
+
+.search-content { 
+  width:450px; 
+  display:flex; 
+  flex-direction:column; 
+  text-align:center; 
+}
+
+.search-content .title { margin-bottom:32px; }
+.input-row { display:flex; gap:8px; width:100%; }
+.input-box { flex:1; min-width:0; }
+.btn { padding:14px 18px; }
+
+.input-row + .popular-row { margin-top:16px; }
+
+.popular-row { 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  gap:11px; 
+}
+
+.popular-label { 
+  font-size:11px; 
+  font-weight:600; 
+  color:rgba(0,0,0,.7); 
+}
+
+.chips { display:flex; gap:8px; }
+
+.chip { 
+  padding:7px 17px; 
+  border-radius:1000px; 
+  border:1px solid rgba(222,222,222,.6); 
+  font-size:11px; 
+  color:rgba(0,0,0,.7); 
+  cursor:pointer; 
+  transition:background-color .2s; 
+}
+
+.chip:hover { background-color:#eee; }
+
+
+/* ======================================= */
+/* 7. SEARCH RESULTS (LISTA) */
+/* ======================================= */
+
+.container.search { 
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.container.search-results { 
+  justify-content:flex-start; 
+  align-items:stretch; 
+  text-align:left; 
+  overflow:hidden; 
+}
+
+.container.search-results > header,
+.container.search-results > .grid-scroll,
+.container.search-results > .bottom-bar { 
+  max-width:none; 
+  width:100%; 
+}
+
+header { 
+  display:grid; 
+  grid-template-columns:1fr auto; 
+  align-items:end; 
+  gap:16px; 
+  padding:24px 32px 12px; 
+  border-bottom:1px solid #e7e7e7; 
+}
+
+.header-left { 
+  display:grid; 
+  grid-template-columns:auto 1fr; 
+  align-items:center; 
+  gap:12px; 
+}
+
+.back-btn { 
+  width:32px; 
+  height:32px; 
+  display:inline-flex; 
+  align-items:center; 
+  justify-content:center; 
+  cursor:pointer; 
+  background:#fff; 
+}
+
+.header-text { display:flex; flex-direction:column; }
+.header-title { font-size:18px; font-weight:600; line-height:1.2; }
+
+.tabs { display:flex; align-items:center; gap:16px; font-size:12px; }
+.tab { color:#aaa; cursor:pointer; border-bottom:none; padding-bottom:0; }
+.tab.active { color:#000; font-weight:600; border-bottom:none; }
+
+
+/* ======================================= */
+/* 8. SISTEMA GRID / MASONRY (MÚLTIPLES VARIANTES) */
+/* ======================================= */
+
+.grid {
+  display: block !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  column-count: 3;
+  column-gap: 16px;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.grid-scroll {
+  height: calc(760px - (24px + 12px + 1px));
+  overflow: auto;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 24px 32px 120px;
+  box-sizing: border-box;
+}
+
+/* Tarjetas genéricas */
+.card { width:100%; height:260px; border-radius:18px; background:#f2f2f2; }
+.card.tall { height:380px; }
+
+.bottom-bar {
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:100px;
+  /*background:linear-gradient(360deg,#fff 0%,rgba(255,255,255,0) 100%);*/
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.fab {
+  pointer-events:auto;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.fab svg {
+  width:24px;
+  height:24px;
+  stroke:#fff;
+  flex-shrink:0;
+}
+
+/* Separación vertical entre tarjetas y evitar cortes entre columnas */
+.grid .pin-container,
+#moodboardGrid .pin-container {
+  position: relative;
+  width: 100%;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+/* Forzar 16px en el contenedor más específico para Columns */
+#moodboardGrid {
+  column-gap: 16px !important;
+}
+
+/* Forzar 16px incluso si otros bloques redefinen Masonry */
+#moodboardGrid.grid,
+#moodboardGrid.moodboard-grid {
+  column-gap: 16px !important;
+}
+
+
+
+/* ======================================= */
+/* 9. DETAILS / PANEL DE IMAGEN GRANDE */
+/* ======================================= */
+
+.container.details { 
+  background:#000; 
+  padding:32px 32px 0; 
+  overflow:hidden; 
+  position:relative; 
+  justify-content:flex-start; 
+  align-items:center; 
+  text-align:left; 
+}
+
+.container.details > .panel { 
+  max-width:none; 
+  width:100%; 
+  height:100%; 
+  overflow:auto; 
+  background:#f0f0f0; 
+  border-radius:24px; 
+  position:relative; 
+  /*box-shadow:0 1px 6px rgba(0,0,0,.08); */
+}
+
+.container.details .close-btn { 
+  position:absolute; 
+  top:10px; 
+  right:10px; 
+  width:36px; 
+  height:36px; 
+  background:#fff; 
+  border-radius:50%; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  cursor:pointer; 
+  font-size:20px; 
+  line-height:1; 
+}
+
+.container.details .close-btn svg { width:13px; height:13px; }
+
+.container.details .bottom-bar { 
+  position:absolute; 
+  left:0; 
+  right:0; 
+  bottom:0; 
+  width:100%; 
+  display:flex; 
+  justify-content:center; 
+  gap:20px; 
+  padding-bottom:24px; 
+}
+
+.container.details .circle-btn { 
+  width:32px; 
+  height:32px; 
+  border-radius:50%; 
+  background:#fff; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  cursor:pointer; 
+}
+
+.container.details .circle-btn.delete { width:60px; height:60px; }
+.container.details .circle-btn.delete svg { width:24px; height:24px; }
+.container.details .circle-btn svg { width:24px; height:24px; stroke:black; stroke-width:2; }
+
+
+/* ======================================= */
+/* 10. ITEMS DE PINES (MÚLTIPLES DUPLICADOS) */
+/* ======================================= */
+
+.grid .pin-container,
+#moodboardGrid .pin-container {
+  position: relative;
+  width: 100%;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.pin-image { 
+  width:100%; 
+  height:160px; 
+  object-fit:cover; 
+  background-color:var(--surface); 
+  border-radius:8px; 
+}
+
+.pin-overlay { 
+  position:absolute; 
+  inset:0; 
+  background:rgba(0,0,0,.3); 
+  border-radius:8px; 
+  display:flex; 
+  justify-content:center; 
+  align-items:center; 
+  opacity:0; 
+  transition:opacity .2s; 
+  cursor:pointer; 
+}
+
+.pin-container:hover .pin-overlay { opacity:1; }
+
+.delete-button { 
+  position:absolute; 
+  top:8px; 
+  right:8px; 
+  background-color:rgba(0,0,0,.5); 
+  color:#fff; 
+  border-radius:50%; 
+  width:24px; 
+  height:24px; 
+  line-height:24px; 
+  text-align:center; 
+  cursor:pointer; 
+}
+
+.pin-media {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  max-height: 480px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pin-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pin-image, .pin-container img {
+  width: 100% !important;
+  height: auto !important;
+}
+
+
+/* ======================================= */
+/* 11. LIGHTBOX / MODAL / TOAST */
+/* ======================================= */
+
+.lightbox, .modal { 
+  position:fixed; 
+  inset:0; 
+  background-color:rgba(0,0,0,.8); 
+  display:none; 
+  justify-content:center; 
+  z-index:1000; 
+}
+
+.lightbox.active, .modal.active { display:flex; }
+
+.lightbox { 
+  overflow-y:auto; 
+  align-items:flex-start; 
+  padding:5vh 0; 
+  box-sizing:border-box; 
+}
+
+.lightbox-content { max-width:90%; object-fit:contain; }
+
+.lightbox-close { 
+  position:fixed; 
+  top:20px; 
+  right:20px; 
+  color:#fff; 
+  font-size:30px; 
+  cursor:pointer; 
+}
+
+.lightbox-actions { 
+  position:fixed; 
+  bottom:20px; 
+  left:50%; 
+  transform:translateX(-50%); 
+}
+
+.lightbox-nav { 
+  position:fixed; 
+  top:50%; 
+  transform:translateY(-50%); 
+  background:rgba(0,0,0,.5); 
+  color:#fff; 
+  border:none; 
+  border-radius:50%; 
+  width:40px; 
+  height:40px; 
+  font-size:24px; 
+  line-height:40px; 
+  text-align:center; 
+  cursor:pointer; 
+}
+
+.lightbox-nav.prev { left:20px; }
+.lightbox-nav.next { right:20px; }
+
+.modal { align-items:center; }
+
+.modal-content { 
+  background:#fff; 
+  padding:20px; 
+  border-radius:8px; 
+  text-align:center; 
+  max-width:280px; 
+}
+
+.modal-secondary-text { font-size:13px; color:#777; margin:5px 0 15px; }
+
+.modal-buttons { display:flex; gap:10px; justify-content:center; }
+
+.spinner-overlay { 
+  position:fixed; 
+  inset:0; 
+  background:rgba(0,0,0,.7); 
+  display:none; 
+  justify-content:center; 
+  align-items:center; 
+  z-index:1500; 
+}
+
+.spinner-overlay.active { display:flex; }
+
+.spinner { 
+  border:4px solid rgba(255,255,255,.2); 
+  border-left-color:#fff; 
+  border-radius:50%; 
+  width:40px; 
+  height:40px; 
+  animation:spin 1s linear infinite; 
+}
+
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.toast { 
+  position:fixed; 
+  bottom:-50px; 
+  left:50%; 
+  transform:translateX(-50%); 
+  background-color:#28a745; 
+  color:#fff; 
+  padding:10px 20px; 
+  border-radius:8px; 
+  z-index:3000; 
+  transition:bottom .5s ease-in-out; 
+}
+
+.toast.show { bottom:30px; }
+
+img, svg { max-width:100%; }
+
+
+/* ======================================= */
+/* 12. DETAILS (VERSIÓN PULIDA) */
+/* ======================================= */
+
+.container.details {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+  padding: 0;
+  overflow: hidden;
+  display: block;
+}
+
+.container.details .panel {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  display: block;
+  padding-bottom: 0; 
+  box-sizing: border-box;
+}
+
+#detailsImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+}
+
+#detailsCloseBtn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: auto !important;
+  height: auto !important;
+  padding: 10px 14px !important;
+  background: #fff;
+  border-radius: 8px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+.chip-close {
+  position: fixed;            
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+  background: #fff;
+  color: #000;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-close:hover { background: #f8f8f8; }
+.chip-close:active { transform: translateY(1px); }
+
+#detailsCloseBtn svg { width: 14px; height: 14px; display: block; }
+
+.container.details .bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  /*background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);*/
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.container.details .circle-btn {
+  pointer-events: auto; 
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s;
+  /*box-shadow: 0 2px 5px rgba(0,0,0,0.2);*/
+}
+
+.container.details .circle-btn:active { transform: scale(0.95); }
+.container.details .circle-btn.delete { width: 64px; height: 64px; }
+.container.details .circle-btn svg { width: 24px; height: 24px; stroke: black; stroke-width: 2; }
+
+
+/* ======================================= */
+/* 13. MASONRY MULTI-VERSIONES (SIN ELIMINAR DUPLICADOS) */
+/* ======================================= */
+
+/* Versiones distintas de .moodboard-grid */
+.moodboard-grid { display: block !important; grid-template-columns: none !important; }
+
+.moodboard-grid { display: block; }
+
+.moodboard-grid {
+  display: block !important;
+  column-count: 3;
+  column-gap: 24px;
+  width: 100%;
+  padding: 24px 32px 120px;
+  box-sizing: border-box;
+}
+
+.moodboard-grid.masonry-reset { display: block; }
+
+.moodboard-grid[style] { display: block !important; }
+
+
+/* Duplicados de pin-container + spacing */
+.pin-container {
+  break-inside: avoid;
+  margin-bottom: 24px;
+  width: 100%;
+  position: relative;
+}
+
+.pin-container {
+  break-inside: avoid;
+  margin-bottom: 24px;
+  position: relative;
+  width: 100%;
+}
+
+
+/* Más replicaciones de pin-image */
+.pin-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  background-color: var(--surface);
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.pin-image {
+  width: 100% !important;
+  height: auto !important;
+}
+
+
+/* ======================================= */
+/* 14. VARIANTES DE GRID PARA MASONRY */
+/* ======================================= */
+
+#moodboardGrid,
+.grid {
+  display: block !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  column-count: 3;
+  column-gap: 16px;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.grid > * { break-inside: avoid; }
+
+
+/* ======================================= */
+/* 15. RESPONSIVE */
+/* ======================================= */
+
+@media (max-width: 640px) {
+  #moodboardGrid, 
+  .grid { column-count: 2; column-gap: 16px; }
+
+  .grid-scroll { padding: 16px 16px 96px; }
+
+  .pin-container { margin-bottom: 16px; }
+
+  .pin-media { min-height: 160px; max-height: 420px; }
+}
+
+.pin-media {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  max-height: 480px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pin-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+</style>
 </head>
 <body>
-    <div id="view-wrapper" class="view-wrapper">
-        <div id="view-auth" class="view">
-            <h1>Welcome to Moood!</h1>
-            <p>Connect your Pinterest account to start creating stunning moodboards and style guides in seconds.</p>
-            <button id="connectButton">Connect Pinterest</button>
-            <div id="auth-step-2" style="display: none; flex-direction: column; gap: 15px; width: 100%;">
-                <p style="text-align: left;">Paste the token here and confirm:</p>
-                <textarea id="tokenInput" placeholder="Paste the token you copied..."></textarea>
-                <button id="confirmButton">Confirm Connection</button>
-            </div>
-        </div>
-        <div id="view-search" class="view">
-            <h1>Create your Moodboard</h1>
-            <p>Start by searching for a topic or choosing a popular one to get inspired.</p>
-            <div class="search-form">
-                <div class="input-container">
-                    <div class="search-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 17.5L13.875 13.875M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z" stroke="#8E8E8E" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                    <input type="text" id="searchInput" placeholder="What type of inspiration you need today?">
-                </div>
-                <button id="createMoodboardButton">Create Moodboard</button>
-            </div>
-            <div class="tags-container">
-                <p class="small">Popular:</p>
-                <div class="tags">
-                    <div class="tag" data-category="landing">landing</div>
-                    <div class="tag" data-category="dashboard">dashboard</div>
-                    <div class="tag" data-category="typography">typography</div>
-                    <div class="tag" data-category="typography">mobile app</div>
-                </div>
-            </div>
-        </div>
-        <div id="view-moodboard" class="view">
-            <div class="moodboard-header">
-                <button id="backButton" class="back-button"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                <h2 id="moodboardTitle"></h2>
-                <button id="getStyleGuideButton">Get the style guide</button>
-            </div>
-            <div id="moodboardGrid" class="moodboard-grid"></div>
-        </div>
-        <div id="lightbox" class="lightbox">
-            <div id="spinnerOverlay" class="spinner-overlay"><div class="spinner"></div></div>
-            <span id="lightboxClose" class="lightbox-close">&times;</span>
-            <button id="lightboxPrev" class="lightbox-nav prev">&lt;</button>
-            <img id="lightboxImage" class="lightbox-content">
-            <button id="lightboxNext" class="lightbox-nav next">&gt;</button>
-            <div class="lightbox-actions"><button id="lightboxDeleteButton" class="danger">Eliminar</button></div>
-        </div>
-        <div id="confirmModal" class="modal">
-            <div class="modal-content">
-                <p><strong>¿Quitar esta imagen del moodboard?</strong></p>
-                <p class="modal-secondary-text">Esta acción no se puede deshacer.</p>
-                <div class="modal-buttons">
-                    <button id="cancelDeleteButton" class="secondary">Cancelar</button>
-                    <button id="confirmDeleteButton" class="danger">Quitar</button>
-                </div>
-            </div>
-        </div>
-        <div id="toast" class="toast"></div>
-    </div><script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const views = { auth: document.getElementById('view-auth'), search: document.getElementById('view-search'), moodboard: document.getElementById('view-moodboard') };
-            const wrapper = document.getElementById('view-wrapper');
+  <div id="view-wrapper" class="view-wrapper">
 
-            function showView(viewId) {
-                if (viewId === 'auth' || viewId === 'search') {
-                    wrapper.classList.add('centered');
-                } else {
-                    wrapper.classList.remove('centered');
-                }
-                Object.values(views).forEach(v => v.classList.remove('active'));
-                if (views[viewId]) views[viewId].classList.add('active');
+    <!-- Welcome / Auth -->
+    <div id="view-auth" class="view active">
+      <div class="container welcome">
+        <div class="title">
+          <svg width="22" height="31" viewBox="0 0 22 31" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7691 7.11331H17.169V4.56373C17.169 2.59554 15.5735 1 13.6053 1L7.70636 1C5.73817 1 4.14263 2.59554 4.14263 4.56373V7.11331L6.88467 7.11331M14.7691 7.11331L15.4547 15.1121M14.7691 7.11331H6.88467M15.4547 15.1121L16.6331 15.1121C18.6013 15.1121 20.1968 16.7076 20.1968 18.6758V22.3747L10.5984 22.3747M15.4547 15.1121L6.19906 15.1121M6.88467 7.11331L6.19906 15.1121M6.19906 15.1121L4.56373 15.1121C2.59554 15.1121 1 16.7076 1 18.6758L1 22.3747L10.5984 22.3747M10.5984 22.3747V30.9953" stroke="black" stroke-width="2"/></svg>
+          Pins in.
+          <svg width="31" height="31" viewBox="0 0 31 31" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.52042 15.4744V18.2379M3.76358 11.7502H1M7.52042 5.23792V8.0015M13.9999 11.7502H11.2363M7.28711 11.7502H7.52353M12.9248 22.1505L10.0537 23.2129C9.47689 23.4263 9.47689 24.2422 10.0537 24.4556L12.9248 25.518C13.1061 25.5851 13.2491 25.7281 13.3162 25.9094L14.3786 28.7805C14.592 29.3573 15.4079 29.3573 15.6213 28.7805L16.6837 25.9094C16.7508 25.7281 16.8938 25.5851 17.0752 25.518L19.9462 24.4556C20.523 24.2422 20.523 23.4263 19.9462 23.2129L17.0752 22.1505C16.8938 22.0834 16.7508 21.9404 16.6837 21.759L15.6213 18.888C15.4079 18.3112 14.592 18.3112 14.3786 18.888L13.3162 21.759C13.2491 21.9404 13.1061 22.0834 12.9248 22.1505Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Style out!
+        </div>
+
+        <div class="subtitle">
+          Tell Moood! the style you’re after, and it will find aligned inspiration, build your mood board, and turn it into a style guide with typography, color palettes, and layout suggestions ready in Figma.
+        </div>
+
+        <button id="connectButton" class="cta">Connect Pinterest</button>
+      </div>
+    </div>
+
+    <!-- Authorization (Step 2) -->
+    <div id="view-authorization" class="view">
+      <div class="container authorization">
+        <h1>Got the code?</h1>
+        <p class="subtitle">Paste the access code here and get inspired!</p>
+        <div class="row code">
+          <input type="text" id="tokenInput" placeholder="Paste the token you copied..." />
+          <button id="confirmButton">Go!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div id="view-search" class="view">
+      <div class="container search">
+        <div class="search-content">
+          <h1 class="title">Tell us your vibe. <br>We’ll find the pins for you.</h1>
+          <div class="input-row">
+            <div class="input-box">
+              <input type="text" id="searchInput" placeholder="What type of inspiration you need?" />
+            </div>
+            <button id="createMoodboardButton" class="btn">Create Mood board</button>
+          </div>
+          <div class="popular-row">
+            <span class="popular-label">Popular:</span>
+            <div class="chips">
+              <div class="chip" data-category="landing">landing</div>
+              <div class="chip" data-category="dashboard">dashboard</div>
+              <div class="chip" data-category="typography">typography</div>
+              <div class="chip" data-category="mobile app">mobile app</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Moodboard / Search results -->
+    <div id="view-moodboard" class="view">
+      <div class="container search-results">
+        <header>
+          <div class="header-left">
+            <div id="backButton" class="back-btn" title="Back">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.1377 12.3198L10.6963 15.7612H23.0889V16.7612H10.6973L14.1377 20.2017L13.4307 20.9087L8.7832 16.2612L9.13672 15.9077L13.4307 11.6128L14.1377 12.3198Z" fill="black"/>
+              </svg>
+
+            </div>
+            <div class="header-text">
+              <div id="moodboardTitle" class="header-title">Results</div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active">Mood board</div>
+            <div class="tab">Color palette</div>
+            <div class="tab">Type scale</div>
+            <div class="tab">Layout</div>
+          </div>
+        </header>
+
+        <div class="grid-scroll">
+          <div id="moodboardGrid" class="moodboard-grid"></div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="fab">
+            <svg width="31" height="31" viewBox="0 0 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.52042 15.4744V18.2379M3.76358 11.7502H1M7.52042 5.23792V8.0015M13.9999 11.7502H11.2363M7.28711 11.7502H7.52353M12.9248 22.1505L10.0537 23.2129C9.47689 23.4263 9.47689 24.2422 10.0537 24.4556L12.9248 25.518C13.1061 25.5851 13.2491 25.7281 13.3162 25.9094L14.3786 28.7805C14.592 29.3573 15.4079 29.3573 15.6213 28.7805L16.6837 25.9094C16.7508 25.7281 16.8938 25.5851 17.0752 25.518L19.9462 24.4556C20.523 24.2422 20.523 23.4263 19.9462 23.2129L17.0752 22.1505C16.8938 22.0834 16.7508 21.9404 16.6837 21.759L15.6213 18.888C15.4079 18.3112 14.592 18.3112 14.3786 18.888L13.3162 21.759C13.2491 21.9404 13.1061 22.0834 12.9248 22.1505ZM21.8305 4.69511L18.9595 5.75749C18.3826 5.97093 18.3826 6.78679 18.9595 7.00023L21.8305 8.06261C22.0119 8.12972 22.1549 8.27271 22.222 8.45406L23.2843 11.3251C23.4978 11.9019 24.3136 11.9019 24.5271 11.3251L25.5895 8.45406C25.6566 8.27271 25.7996 8.12972 25.9809 8.06261L28.852 7.00023C29.4288 6.78679 29.4288 5.97093 28.852 5.75749L25.9809 4.69511C25.7996 4.628 25.6566 4.48502 25.5895 4.30366L24.5271 1.43262C24.3136 0.855793 23.4978 0.855794 23.2843 1.43262L22.222 4.30366C22.1549 4.48502 22.0119 4.628 21.8305 4.69511Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lightbox + modal + toast (overlays) -->
+    <div id="lightbox" class="lightbox">
+      <div id="spinnerOverlay" class="spinner-overlay"><div class="spinner"></div></div>
+      <span id="lightboxClose" class="lightbox-close">&times;</span>
+      <button id="lightboxPrev" class="lightbox-nav prev">&lt;</button>
+      <img id="lightboxImage" class="lightbox-content">
+      <button id="lightboxNext" class="lightbox-nav next">&gt;</button>
+      <div class="lightbox-actions"><button id="lightboxDeleteButton" class="danger">Eliminar</button></div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <p><strong>¿Quitar esta imagen del moodboard?</strong></p>
+        <p class="modal-secondary-text">Esta acción no se puede deshacer.</p>
+        <div class="modal-buttons">
+          <button id="cancelDeleteButton" class="secondary">Cancelar</button>
+          <button id="confirmDeleteButton" class="danger">Quitar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+  <!-- Details (panel incrustado) -->
+<div id="view-details" class="view">
+  <div class="container details">
+    <div class="panel">
+      <!-- Cerrar -->
+      <div id="detailsCloseBtn" class="chip-close" role="button" aria-label="Close">Close</div>
+
+      <!-- Imagen grande -->
+      <img id="detailsImage" class="details-image" alt="Preview" />
+
+      <!-- Barra inferior con controles -->
+      <div class="bottom-bar">
+        <div id="detailsPrevBtn" class="circle-btn" aria-label="Anterior">
+          <svg fill="none" viewBox="0 0 24 24" role="img" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div id="detailsDeleteBtn" class="circle-btn delete" aria-label="Eliminar">
+          <svg fill="none" viewBox="0 0 24 24" role="img" aria-hidden="true">
+            <path d="M4 7H20M9 3H15M10 11V17M14 11V17M6 7L7 19C7 20.1046 7.89543 21 9 21H15C16.1046 21 17 20.1046 17 19L18 7"
+                  stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div id="detailsNextBtn" class="circle-btn" aria-label="Siguiente">
+          <svg fill="none" viewBox="0 0 24 24" role="img" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  </div> <!-- /view-wrapper -->
+
+<script>
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    // Vistas
+    const views = {
+      auth: document.getElementById('view-auth'),
+      authorization: document.getElementById('view-authorization'),
+      search: document.getElementById('view-search'),
+      moodboard: document.getElementById('view-moodboard'),
+      details: document.getElementById('view-details')
+    };
+    const wrapper = document.getElementById('view-wrapper');
+
+    function showView(viewId) {
+      const centerViews = ['auth', 'authorization', 'search'];
+      if (centerViews.includes(viewId)) { wrapper?.classList.add('centered'); } else { wrapper?.classList.remove('centered'); }
+      Object.values(views).forEach(v => v?.classList.remove('active'));
+      views[viewId]?.classList.add('active');
+    }
+    window.showView = showView;
+
+    // Búsqueda
+    function startSearch(categoryRaw) {
+      const value = (categoryRaw || '').trim();
+      if (!value) return;
+      const normalized = value.toLowerCase();
+      showView('moodboard');
+
+      const titleEl = document.getElementById('moodboardTitle');
+      const gridEl = document.getElementById('moodboardGrid');
+      if (titleEl) titleEl.textContent = 'Cargando...';
+
+      if (gridEl) {
+        // Masonry por Columns; sin padding aquí (está en .grid-scroll)
+        gridEl.innerHTML = '';
+        gridEl.style.display = 'block';
+        gridEl.style.columnCount = '3';
+        gridEl.style.columnGap = '24px';
+        gridEl.style.width = '100%';
+        gridEl.style.maxWidth = '100%';
+        gridEl.style.padding = '0';
+      }
+
+      parent.postMessage({ pluginMessage: { type: 'get-pins', category: normalized } }, '*');
+    }
+    window.startSearch = startSearch;
+
+    // UX: chips → rellenan input; botón/Enter → disparan búsqueda
+    function attachSearchListeners() {
+      const searchInput = document.getElementById('searchInput');
+      const createMoodboardButton = document.getElementById('createMoodboardButton');
+
+      document.querySelectorAll('.chip').forEach(chip => {
+        chip.onclick = () => {
+          const text = chip.dataset.category || chip.textContent || '';
+          if (searchInput) searchInput.value = text;
+        };
+      });
+
+      if (createMoodboardButton) {
+        createMoodboardButton.onclick = () => {
+          const category = searchInput ? searchInput.value : '';
+          startSearch(category);
+        };
+      }
+
+      if (searchInput) {
+        searchInput.onkeydown = (e) => {
+          if (e.key === 'Enter') startSearch(searchInput.value);
+        };
+      }
+    }
+    attachSearchListeners();
+
+    // Estado del lightbox (Details)
+    let currentImageUrls = [];
+    let currentImageIndex = -1;
+
+    // IDs Details
+    const detailsImageEl   = document.getElementById('detailsImage');
+    const detailsCloseBtn  = document.getElementById('detailsCloseBtn');
+    const detailsPrevBtn   = document.getElementById('detailsPrevBtn');
+    const detailsNextBtn   = document.getElementById('detailsNextBtn');
+    const detailsDeleteBtn = document.getElementById('detailsDeleteBtn');
+
+    // Host → UI
+    window.onmessage = (event) => {
+      const msg = event?.data?.pluginMessage ?? event?.data;
+      if (!msg) return;
+      const { type, view, url, data, imageBytes, target } = msg;
+
+      if (type === 'show-view') {
+        showView(view);
+        if (view === 'search') attachSearchListeners();
+
+        if (view === 'moodboard' && data) {
+          currentImageUrls = [];
+          const grid = document.getElementById('moodboardGrid');
+          const title = document.getElementById('moodboardTitle');
+          grid && (grid.innerHTML = '');
+          title && (title.textContent = data.category || '');
+
+          if (grid && Array.isArray(data.pins) && data.pins.length > 0) {
+            data.pins.forEach(pin => {
+              // Usar fuente proporcional (no thumbs recortadas)
+              const srcUrl = pin.fullsizeUrl || pin.thumbnailUrl;
+              if (!srcUrl) return;
+              currentImageUrls.push(pin.fullsizeUrl || '');
+
+              // Contenedor del pin
+              const container = document.createElement('div');
+              container.className = 'pin-container';
+              if (pin.fullsizeUrl) container.dataset.fullsizeUrl = pin.fullsizeUrl;
+
+              // Wrapper con límites estilo Pinterest
+              const media = document.createElement('div');
+              media.className = 'pin-media';
+
+              // Imagen dentro del wrapper (cover + recorte controlado)
+              const img = document.createElement('img');
+              img.dataset.thumbnailUrl = srcUrl; // track para actualizar al cargar
+
+              const overlay = document.createElement('div');
+              overlay.className = 'pin-overlay';
+              overlay.innerHTML = `
+                <div class="overlay-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12C3.60014 7.90264 7.33603 5 12 5C16.664 5 20.3999 7.90264 22 12C20.3999 16.0974 16.664 19 12 19C7.33603 19 3.60014 16.0974 2 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              `;
+              overlay.onclick = () => {
+                if (pin.fullsizeUrl) openDetails(pin.fullsizeUrl);
+              };
+
+              const deleteBtn = document.createElement('button');
+              deleteBtn.className = 'delete-button';
+              deleteBtn.innerHTML = '&times;';
+              deleteBtn.onclick = (e) => { e.stopPropagation(); container.remove(); };
+
+              media.appendChild(img);
+              container.appendChild(media);
+              container.appendChild(overlay);
+              container.appendChild(deleteBtn);
+              grid.appendChild(container);
+
+              // Solicitar imagen proporcional (preferir fullsizeUrl; si pesado, usa media)
+              parent.postMessage({ pluginMessage: { type: 'fetch-image', url: srcUrl, target: 'grid' } }, '*');
+            });
+          } else if (grid) {
+            grid.innerHTML = '<p>No se encontraron pines.</p>';
+          }
+        }
+      } else if (type === 'open-auth-window') {
+        url && window.open(url);
+      } else if (type === 'image-loaded') {
+        try {
+          const blob = new Blob([imageBytes]);
+          const objectUrl = URL.createObjectURL(blob);
+          if (target === 'lightbox') {
+            if (detailsImageEl) {
+              detailsImageEl.src = objectUrl;
+              requestAnimationFrame(() => { detailsImageEl.style.willChange = 'transform'; });
             }
-
-            function startSearch(category) { 
-                if (!category || category.trim() === '') return; 
-                const normalizedCategory = category.toLowerCase().trim(); 
-                showView('moodboard'); 
-                document.getElementById('moodboardTitle').textContent = 'Cargando...'; 
-                document.getElementById('moodboardGrid').innerHTML = '<p style="color: #8E8E8E; text-align: center;">Buscando inspiración...</p>'; 
-                parent.postMessage({ pluginMessage: { type: 'get-pins', category: normalizedCategory } }, '*'); 
+          } else {
+            const imgElement = document.querySelector(`img[data-thumbnail-url="${url}"]`);
+            if (imgElement) {
+              // La imagen del feed se ajusta al wrapper .pin-media (cover)
+              imgElement.src = objectUrl;
             }
-            
-            let currentImageUrls = [];
-            let currentImageIndex = -1;
-            
-            const lightbox = document.getElementById('lightbox');
-            const lightboxImage = document.getElementById('lightboxImage');
-            const lightboxClose = document.getElementById('lightboxClose');
-            const lightboxPrev = document.getElementById('lightboxPrev');
-            const lightboxNext = document.getElementById('lightboxNext');
-            const lightboxDeleteButton = document.getElementById('lightboxDeleteButton');
-            const confirmModal = document.getElementById('confirmModal');
-            const cancelDeleteButton = document.getElementById('cancelDeleteButton');
-            const confirmDeleteButton = document.getElementById('confirmDeleteButton');
-            const spinnerOverlay = document.getElementById('spinnerOverlay');
-            const toast = document.getElementById('toast');
+          }
+        } catch (err) {
+          console.error('Error creando object URL para imagen:', err);
+        }
+      }
+    };
 
-            window.onmessage = (event) => {
-                if (event.data.pluginMessage) {
-                    const { type, view, url, data, imageBytes, target } = event.data.pluginMessage;
-                    if (type === 'show-view') {
-                        showView(view);
-                        if (view === 'moodboard' && data) {
-                            currentImageUrls = [];
-                            const grid = document.getElementById('moodboardGrid');
-                            const title = document.getElementById('moodboardTitle');
-                            grid.innerHTML = '';
-                            title.textContent = data.category;
-                            if (data.pins && data.pins.length > 0) {
-                                data.pins.forEach(pin => {
-                                    if (!pin.thumbnailUrl || !pin.fullsizeUrl) return;
-                                    currentImageUrls.push(pin.fullsizeUrl);
-                                    const container = document.createElement('div');
-                                    container.className = 'pin-container';
-                                    container.dataset.fullsizeUrl = pin.fullsizeUrl;
-                                    const img = document.createElement('img');
-                                    img.className = 'pin-image';
-                                    img.dataset.thumbnailUrl = pin.thumbnailUrl;
-                                    const overlay = document.createElement('div');
-                                    overlay.className = 'pin-overlay';
-                                    overlay.innerHTML = `<div class="overlay-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12C3.60014 7.90264 7.33603 5 12 5C16.664 5 20.3999 7.90264 22 12C20.3999 16.0974 16.664 19 12 19C7.33603 19 3.60014 16.0974 2 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
-                                    overlay.onclick = () => showLightbox(pin.fullsizeUrl);
-                                    const deleteBtn = document.createElement('button');
-                                    deleteBtn.className = 'delete-button';
-                                    deleteBtn.innerHTML = '&times;';
-                                    deleteBtn.onclick = (e) => { e.stopPropagation(); container.remove(); };
-                                    container.appendChild(img);
-                                    overlay.appendChild(deleteBtn);
-                                    container.appendChild(overlay);
-                                    grid.appendChild(container);
-                                    parent.postMessage({ pluginMessage: { type: 'fetch-image', url: pin.thumbnailUrl, target: 'grid' } }, '*');
-                                });
-                            } else { grid.innerHTML = '<p>No se encontraron pines.</p>'; }
-                        }
-                    } else if (type === 'open-auth-window') { window.open(url); } else if (type === 'image-loaded') {
-                        const blob = new Blob([imageBytes]);
-                        const objectUrl = URL.createObjectURL(blob);
-                        if (target === 'lightbox') {
-                            lightboxImage.src = objectUrl;
-                        } else {
-                            const imgElement = document.querySelector(`img[data-thumbnail-url="${url}"]`);
-                            if (imgElement) { imgElement.src = objectUrl; }
-                        }
-                    }
-                }
-            };
-            
-            function showLightbox(fullsizeUrl) { currentImageIndex = currentImageUrls.indexOf(fullsizeUrl); updateLightboxImage(); lightbox.classList.add('active'); }
-            function updateLightboxImage() { if (currentImageIndex < 0 || currentImageIndex >= currentImageUrls.length) return; const url = currentImageUrls[currentImageIndex]; lightboxImage.src = ''; parent.postMessage({ pluginMessage: { type: 'fetch-image', url: url, target: 'lightbox' } }, '*'); }
-            function closeLightbox() { lightbox.classList.remove('active'); lightboxImage.src = ''; currentImageIndex = -1; }
-            function showToast(message) { toast.textContent = message; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, 2500); }
+    // Lightbox (Details)
+    function openDetails(fullsizeUrl) {
+      currentImageIndex = currentImageUrls.indexOf(fullsizeUrl);
+      if (currentImageIndex < 0) return;
+      showView('details');
+      loadDetailsImage();
+    }
+    function loadDetailsImage() {
+      if (currentImageIndex < 0 || currentImageIndex >= currentImageUrls.length) return;
+      const url = currentImageUrls[currentImageIndex];
+      detailsImageEl && (detailsImageEl.src = '');
+      parent.postMessage({ pluginMessage: { type: 'fetch-image', url: url, target: 'lightbox' } }, '*');
+    }
+    function closeDetails() {
+      showView('moodboard');
+      detailsImageEl && (detailsImageEl.src = '');
+      currentImageIndex = -1;
+    }
+    function nextDetails() {
+      if (!currentImageUrls.length) return;
+      currentImageIndex = (currentImageIndex + 1) % currentImageUrls.length;
+      loadDetailsImage();
+    }
+    function prevDetails() {
+      if (!currentImageUrls.length) return;
+      currentImageIndex = (currentImageIndex - 1 + currentImageUrls.length) % currentImageUrls.length;
+      loadDetailsImage();
+    }
+    function deleteCurrentFromDetails() {
+      if (currentImageIndex === -1) return;
+      const urlToDelete = currentImageUrls[currentImageIndex];
+      const containerToDelete = document.querySelector(`.pin-container[data-fullsize-url="${urlToDelete}"]`);
+      containerToDelete && (containerToDelete.remove());
+      currentImageUrls.splice(currentImageIndex, 1);
+      if (currentImageUrls.length === 0) {
+        closeDetails();
+        parent.postMessage({ pluginMessage: { type: 'back-to-search' } }, '*');
+      } else {
+        currentImageIndex = currentImageIndex % currentImageUrls.length;
+        loadDetailsImage();
+      }
+    }
 
-            lightboxClose.onclick = closeLightbox;
-            lightbox.onclick = (event) => { if (event.target === lightbox) closeLightbox(); };
-            lightboxNext.onclick = () => { if (currentImageUrls.length === 0) return; currentImageIndex = (currentImageIndex + 1) % currentImageUrls.length; updateLightboxImage(); };
-            lightboxPrev.onclick = () => { if (currentImageUrls.length === 0) return; currentImageIndex = (currentImageIndex - 1 + currentImageUrls.length) % currentImageUrls.length; updateLightboxImage(); };
-            lightboxDeleteButton.onclick = () => { confirmModal.classList.add('active'); };
-            cancelDeleteButton.onclick = () => { confirmModal.classList.remove('active'); };
-            confirmDeleteButton.onclick = () => {
-                if (currentImageIndex === -1) return;
-                confirmModal.classList.remove('active');
-                spinnerOverlay.classList.add('active');
-                setTimeout(() => {
-                    spinnerOverlay.classList.remove('active');
-                    const urlToDelete = currentImageUrls[currentImageIndex];
-                    const containerToDelete = document.querySelector(`.pin-container[data-fullsize-url="${urlToDelete}"]`);
-                    if (containerToDelete) containerToDelete.remove();
-                    currentImageUrls.splice(currentImageIndex, 1);
-                    showToast("Imagen eliminada del moodboard");
-                    if (currentImageUrls.length === 0) {
-                        closeLightbox();
-                        parent.postMessage({ pluginMessage: { type: 'back-to-search' } }, '*');
-                    } else {
-                        currentImageIndex = currentImageIndex % currentImageUrls.length;
-                        updateLightboxImage();
-                    }
-                }, 700);
-            };
+    // Botones Details
+    detailsCloseBtn && (detailsCloseBtn.onclick = closeDetails);
+    detailsPrevBtn && (detailsPrevBtn.onclick = prevDetails);
+    detailsNextBtn && (detailsNextBtn.onclick = nextDetails);
+    detailsDeleteBtn && (detailsDeleteBtn.onclick = deleteCurrentFromDetails);
 
-            const authStep2 = document.getElementById('auth-step-2');
-            const connectButton = document.getElementById('connectButton');
-            const confirmButton = document.getElementById('confirmButton');
-            connectButton.onclick = () => { 
-                connectButton.disabled = true;
-                authStep2.style.display = 'flex';
-                parent.postMessage({ pluginMessage: { type: 'connect-pinterest' } }, '*');
-            };
-            confirmButton.onclick = () => {
-                const tokenInput = document.getElementById('tokenInput');
-                const token = tokenInput.value;
-                if (token.trim()) {
-                    parent.postMessage({ pluginMessage: { type: 'token-received', token: token.trim() } }, '*');
-                }
-            };
-            
-            document.querySelectorAll('.tag').forEach(tag => { tag.onclick = () => { const category = tag.dataset.category; startSearch(category); }; });
-            const searchInput = document.getElementById('searchInput');
-            const createMoodboardButton = document.getElementById('createMoodboardButton');
-            createMoodboardButton.onclick = () => { const category = searchInput.value; startSearch(category); };
-            searchInput.onkeydown = (event) => { if (event.key === 'Enter') { const category = searchInput.value; startSearch(category); } };
-            document.getElementById('backButton').onclick = () => { parent.postMessage({ pluginMessage: { type: 'back-to-search' } }, '*'); };
-        });
-    </script>
+    // Autorización
+    const connectButton = document.getElementById('connectButton');
+    const confirmButton = document.getElementById('confirmButton');
+    connectButton && (connectButton.onclick = () => {
+      connectButton.disabled = true;
+      showView('authorization');
+      parent.postMessage({ pluginMessage: { type: 'connect-pinterest' } }, '*');
+    });
+    confirmButton && (confirmButton.onclick = () => {
+      const tokenInput = document.getElementById('tokenInput');
+      const token = tokenInput ? tokenInput.value : '';
+      if (token && token.trim()) {
+        parent.postMessage({ pluginMessage: { type: 'token-received', token: token.trim() } }, '*');
+        setTimeout(() => { showView('search'); }, 1200);
+      }
+    });
+
+    // Back
+    const backButton = document.getElementById('backButton');
+    backButton && (backButton.onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'back-to-search' } }, '*');
+      showView('search');
+    });
+  });
+})();
+</script>
+
+
+
 </body>
 </html>
